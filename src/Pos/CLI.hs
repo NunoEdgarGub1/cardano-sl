@@ -15,6 +15,8 @@ module Pos.CLI
 
        -- | CLI options and flags
        , CommonArgs (..)
+       , QDiscParams (..)
+       , Abusiveness (..)
        , commonArgsParser
        , optionalJSONPath
        , optionalLogPrefix
@@ -125,6 +127,15 @@ readLoggerConfig = maybe (return defaultLoggerConfig) parseLoggerConfig
 ----------------------------------------------------------------------------
 -- ClI Options
 ----------------------------------------------------------------------------
+
+-- | Choose which queueing discipline should be used by a node
+data QDiscParams = QDUnbounded | QDOnePlace | QDFair
+    deriving (Read, Show)
+
+-- | Simulate an abusive node, that needlessly resends requests to its
+-- neighbours
+data Abusiveness = Unabusive | AbusiveGetBlocks
+    deriving (Read, Show)
 
 data CommonArgs = CommonArgs
     { dhtExplicitInitial :: !Bool

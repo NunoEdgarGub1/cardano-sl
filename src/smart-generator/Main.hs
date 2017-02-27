@@ -251,6 +251,7 @@ main = do
             , bpDHTKey             = Nothing
             , bpDHTExplicitInitial = CLI.dhtExplicitInitial goCommonArgs
             , bpKademliaDump       = "kademlia.dump"
+            , bpQDisc              = Nothing
             }
 
     bracketResources baseParams $ \res -> do
@@ -285,6 +286,7 @@ main = do
                 , npUpdateWithPkg = True
                 , npUpdateServers = []
                 , npReportServers = []
+                , npAbusiveness   = Nothing
                 }
             gtParams =
                 GtParams

@@ -5,6 +5,7 @@
 module Pos.Block.Worker
        ( blkOnNewSlot
        , blkWorkers
+       , abusiveGetBlocksWorker
        ) where
 
 import           Control.Lens                (ix)
@@ -22,9 +23,11 @@ import           Pos.Binary.Communication    ()
 import           Pos.Block.Logic             (createGenesisBlock, createMainBlock)
 import           Pos.Block.Network.Announce  (announceBlock, announceBlockOuts)
 import           Pos.Block.Network.Retrieval (requestTipOuts, retrievalWorker,
-                                              triggerRecovery)
+                                              triggerRecovery, requestAndDiscardTip)
+import           Pos.Block.Network.Types     (MsgBlock (..), MsgGetBlocks (..),
+                                              MsgGetHeaders (..), MsgHeaders (..))
 import           Pos.Communication.Protocol  (OutSpecs, Worker', WorkerSpec,
-                                              onNewSlotWorker, worker)
+                                              convH, onNewSlotWorker, toOutSpecs, worker)
 import           Pos.Constants               (networkDiameter)
 import           Pos.Context                 (getNodeContext, isRecoveryMode, ncPublicKey)
 import           Pos.Crypto                  (ProxySecretKey (pskDelegatePk, pskIssuerPk, pskOmega))
@@ -194,3 +197,24 @@ recoveryWorkerImpl sendActions = action `catch` handler
         logError $ "Error happened in recoveryWorker: " <> show e
         delay (sec 10)
         action
+
+abusiveGetBlocksWorker :: WorkMode ssc m => (WorkerSpec m, OutSpecs)
+abusiveGetBlocksWorker = worker abusiveGetBlocksOuts abusiveGetBlocksWorkerImpl
+
+abusiveGetBlocksWorkerImpl ::
+       WorkMode ssc m
+    => SendActions m -> m ()
+abusiveGetBlocksWorkerImpl sendActions = action `catch` handler
+  where
+    action = reportingFatal . forever $ requestAndDiscardTip sendActions
+    handler (e :: SomeException) = do
+        logError $ "Error happened in abusiveGetBlocksWorker: " <> show e
+        delay (sec 10)
+        action
+
+abusiveGetBlocksOuts :: OutSpecs
+abusiveGetBlocksOuts =
+    toOutSpecs [ convH (Proxy :: Proxy MsgGetHeaders)
+                       (Proxy :: Proxy (MsgHeaders ssc))
+               , convH (Proxy :: Proxy MsgGetBlocks)
+                       (Proxy :: Proxy (MsgBlock s0 ssc)) ]

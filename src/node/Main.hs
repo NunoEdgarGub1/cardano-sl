@@ -90,6 +90,7 @@ baseParams loggingTag args@Args {..} = do
         , bpDHTKey = dhtKey
         , bpDHTExplicitInitial = CLI.dhtExplicitInitial commonArgs
         , bpKademliaDump = kademliaDumpPath
+        , bpQDisc = qDiscParams
         }
 
 action :: Args -> RealModeResources -> Production ()
@@ -231,6 +232,7 @@ getNodeParams args@Args {..} systemStart = do
         , npUpdateWithPkg = updateWithPackage
         , npUpdateServers = CLI.updateServers commonArgs
         , npReportServers = CLI.reportServers commonArgs
+        , npAbusiveness = abusiveness
         }
 
 gtSscParams :: Args -> VssKeyPair -> GtParams

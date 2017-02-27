@@ -57,6 +57,8 @@ data Args = Args
     , updateLatestPath          :: !FilePath
     , updateWithPackage         :: !Bool
     , monitorPort               :: !(Maybe Int)
+    , qDiscParams               :: !(Maybe CLI.QDiscParams)
+    , abusiveness               :: !(Maybe CLI.Abusiveness)
     }
   deriving Show
 
@@ -167,6 +169,19 @@ argsParser = do
         long    "monitor-port" <>
         metavar "INT" <>
         help    "Run web monitor on this port"
+#ifdef DEV_MODE
+    qDiscParams <- optional $ option auto $
+        long    "qdisc" <>
+        metavar "QDUnbounded | QDOnePlace | QDFair" <>
+        help    "Select Queueing Discipline"
+    abusiveness <- optional $ option auto $
+        long    "abusiveness" <>
+        metavar "Unnabusive | AbusiveGetBlocks" <>
+        help    "Abusiveness of a node"
+#else
+    let qDiscParams = Nothing
+    let abusiveness = Nothing
+#endif
 
     pure Args{..}
   where

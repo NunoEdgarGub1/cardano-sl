@@ -58,7 +58,7 @@ import           System.Wlog                 (LoggerConfig (..), WithLogger, log
 import           Universum                   hiding (bracket, finally)
 
 import           Pos.Binary                  ()
-import           Pos.CLI                     (readLoggerConfig)
+import           Pos.CLI                     (QDiscParams (..), readLoggerConfig)
 import           Pos.Communication           (ActionSpec (..), BiP (..),
                                               ConversationActions (..), InSpecs (..),
                                               ListenersWithOut, OutSpecs (..),
@@ -421,13 +421,17 @@ bracketDHTInstance BaseParams {..} action = bracket acquire release action
 
 createTransport
     :: (MonadIO m, WithLogger m, Mockable Throw m)
-    => String -> Word16 -> m Transport
-createTransport ip port = do
+    => Maybe QDiscParams -> String -> Word16 -> m Transport
+createTransport qDisc ip port = do
     let tcpParams =
             (TCP.defaultTCPParameters
              { TCP.transportConnectTimeout =
                    Just $ fromIntegral networkConnectionTimeout
-             , TCP.tcpNewQDisc = fairQDisc
+             , TCP.tcpNewQDisc = case qDisc of
+                     Just QDUnbounded -> TCP.simpleUnboundedQDisc
+                     Just QDOnePlace ->  TCP.simpleOnePlaceQDisc
+                     Just QDFair -> fairQDisc
+                     Nothing -> fairQDisc
              })
     transportE <-
         liftIO $ TCP.createTransport "0.0.0.0" ip (show port) tcpParams
@@ -440,7 +444,7 @@ createTransport ip port = do
 bracketTransport :: BaseParams -> (Transport -> Production a) -> Production a
 bracketTransport BaseParams {..} =
     bracket
-        (withLog $ createTransport (BS8.unpack $ fst bpIpPort) (snd bpIpPort))
+        (withLog $ createTransport bpQDisc (BS8.unpack $ fst bpIpPort) (snd bpIpPort))
         (liftIO . closeTransport)
   where
     withLog = usingLoggerName $ lpRunnerTag bpLoggingParams

@@ -10,6 +10,7 @@ import           Pos.Util.TimeWarp   (NetworkAddress)
 import           System.Wlog         (LoggerName)
 import           Universum
 
+import           Pos.CLI             (QDiscParams, Abusiveness)
 import           Pos.Crypto          (SecretKey)
 import           Pos.DHT.Model.Types (DHTKey, DHTNode)
 import           Pos.Security.CLI    (AttackTarget, AttackType)
@@ -33,6 +34,7 @@ data BaseParams = BaseParams
     , bpDHTExplicitInitial :: !Bool
     , bpLoggingParams      :: !LoggingParams  -- ^ Logger parameters
     , bpKademliaDump       :: !FilePath       -- ^ Path to kademlia dump file
+    , bpQDisc              :: !(Maybe QDiscParams)
     } deriving (Show)
 
 -- | Contains algorithm specific & storage parameters for Node.
@@ -53,4 +55,6 @@ data NodeParams = NodeParams
     , npUpdateWithPkg :: !Bool              -- ^ If `True` then use installer update mechanism
     , npUpdateServers :: ![Text]            -- ^ List of update server URLs
     , npReportServers :: ![Text]            -- ^ List of report server URLs
+    , npAbusiveness   :: !(Maybe Abusiveness)
+                                            -- ^ Allows simulating an abusive node
     } deriving (Show)

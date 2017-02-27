@@ -6,6 +6,7 @@
 
 module Pos.Launcher.Scenario
        ( runNode
+       , runAbusiveNode
        , initSemaphore
        , initLrc
        , runNode'
@@ -21,6 +22,7 @@ import           System.Exit                 (ExitCode (..))
 import           System.Wlog                 (getLoggerName, logError, logInfo)
 import           Universum
 
+import           Pos.Block.Worker            (abusiveGetBlocksWorker)
 import           Pos.Communication           (ActionSpec (..), OutSpecs, WorkerSpec,
                                               wrapActionSpec)
 import           Pos.Context                 (NodeContext (..), getNodeContext,
@@ -34,7 +36,7 @@ import           Pos.Slotting                (getCurrentSlot, waitSystemStart)
 import           Pos.Ssc.Class               (SscConstraint)
 import           Pos.Types                   (SlotId (..), addressHash)
 import           Pos.Update                  (MemState (..), askUSMemVar, mvState)
-import           Pos.Util                    (inAssertMode, waitRandomInterval)
+import           Pos.Util                    (inAssertMode, mappendPair, waitRandomInterval)
 import           Pos.Util.Shutdown           (waitForWorkers)
 import           Pos.Util.TimeWarp           (sec)
 import           Pos.Worker                  (allWorkers, allWorkersCount)
@@ -84,6 +86,23 @@ runNode (plugins', plOuts) = (,plOuts <> wOuts) $ runNode' $ workers' ++ plugins
   where
     (workers', wOuts) = allWorkers
     plugins'' = map (wrapActionSpec "plugin") plugins'
+
+-- | Run an "abusive" node.
+--
+-- In addition to all normal functions, this node will bombard its
+-- neighbors with requests to send blocks at a high rate.
+runAbusiveNode
+    :: (SscConstraint ssc, WorkMode ssc m)
+    => ([WorkerSpec m], OutSpecs)
+    -> (WorkerSpec m, OutSpecs)
+runAbusiveNode (plugins', plOuts) = (,plOuts <> wOuts) $ runNode' $ workers' ++ plugins''
+  where
+    (workers', wOuts) =
+        allWorkers
+        `mappendPair`
+        (wrap' "abusive" $ (first pure) abusiveGetBlocksWorker)
+    plugins'' = map (wrapActionSpec "plugin") plugins'
+    wrap' lname = first (map $ wrapActionSpec $ "worker" <> lname)
 
 -- | Try to discover peers repeatedly until at least one live peer is found
 waitForPeers :: WorkMode ssc m => m ()
